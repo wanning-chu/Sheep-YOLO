@@ -1,8 +1,8 @@
 ## Sheep-YOLO: Improved and Lightweight YOLOv8n for Precise and Intelligent Recognition of Fattening Lambs' Behaviors and Vitality Statuses
 
 ## Contents
-1. [Network structure diagram of Sheep-YOLO](#Network structure)
-2. [Main improvements in Sheep-YOLO](#Main improvements in Sheep-YOLO)
+1. [Network structure diagram of Sheep-YOLO](#Structure)
+2. [Main improvements in Sheep-YOLO](#Improvements)
 3. [Environment](#Environment)
 4. [Download](#Download)
 5. [Train](#Train)
@@ -10,10 +10,11 @@
 7. [Predict](#Predict)
 
 
-## Network structure
-<img width="1024" src="Sheep-YOLO.jpg" alt="Sheep-YOLO的网络结构图">
+## Structure
+<img width="1024" src="Sheep-YOLO.jpg" alt="Sheep-YOLO的网络结构图" align="center">
+<div align="center">Network structure diagram of Sheep-YOLO</div>
 
-## Main improvements in Sheep-YOLO
+## Improvements
 Main improvements compared to YOLOv8n basic model
 ```bash
 # (1) This file visualizes the differences between Sheep-YOLO and the YOLOv8n model. This document shows the network architecture of Sheep-YOLO. 
