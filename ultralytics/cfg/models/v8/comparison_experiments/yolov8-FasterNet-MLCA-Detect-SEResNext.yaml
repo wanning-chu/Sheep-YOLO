@@ -1,0 +1,52 @@
+# Parameters
+
+#  File "D:\Anaconda\lib\site-packages\torch\nn\modules\linear.py", line 114, in forward
+#    return F.linear(input, self.weight, self.bias)
+#RuntimeError: mat1 and mat2 shapes cannot be multiplied (256x128 and 64x64)
+
+
+nc: 8  # number of classes
+scales:
+#depth_multiple: 1.0  # model depth multiple
+#width_multiple: 1.0  # layer channel multiple
+  # [depth, width, max_channels]
+  n: [0.33, 0.25, 1024]  # YOLOv8n summary: 225 layers,  3157200 parameters,  3157184 gradients,   8.9 GFLOPs
+  s: [0.33, 0.50, 1024]  # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
+  m: [0.67, 0.75, 768]   # YOLOv8m summary: 295 layers, 25902640 parameters, 25902624 gradients,  79.3 GFLOPs
+  l: [1.00, 1.00, 512]   # YOLOv8l summary: 365 layers, 43691520 parameters, 43691504 gradients, 165.7 GFLOPs
+  x: [1.00, 1.25, 512]   # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
+
+# YOLOv8.0n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, PatchEmbed_FasterNet, [40, 4, 4]]  # 0-P1/4
+  - [-1, 1, BasicStage, [40, 1]]  # 1
+  - [-1, 1, PatchMerging_FasterNet, [80, 2, 2]]  # 2-P2/8
+  - [-1, 2, BasicStage, [80, 1]]  # 3-P3/16
+  - [-1, 1, PatchMerging_FasterNet, [160, 2, 2]]  # 4
+  - [-1, 8, BasicStage, [160, 1]]  # 5-P4/32
+  - [-1, 1, PatchMerging_FasterNet, [320, 2, 2]] # 6
+  - [-1, 2, BasicStage, [320, 1]] # 7
+  - [-1, 1, SPPF, [320, 5]]  # 8
+
+
+# YOLOv8.0n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 5], 1, Concat, [1]]  # cat backbone P4
+  - [-1, 1, C2f_MLCA, [512]]  # 11
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 3], 1, Concat, [1]]  # cat backbone P3
+  - [-1, 1, C2f_MLCA, [256]]  # 14 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 11], 1, Concat, [1]]  # cat head P4
+  - [-1, 1, C2f_MLCA, [512]]  # 17 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 8], 1, Concat, [1]]  # cat head P5
+  - [-1, 1, C2f_MLCA, [1024]]  # 20 (P5/32-large)
+
+  - [[14, 17, 20], 1, Detect_SEResNeXt, [nc]]  # Detect(P3, P4, P5)
+

@@ -1,0 +1,46 @@
+# Parameters
+nc: 8  # number of classes
+scales:
+#depth_multiple: 1.0  # model depth multiple
+#width_multiple: 1.0  # layer channel multiple
+  # [depth, width, max_channels]
+  n: [0.33, 0.25, 1024]  # YOLOv8n summary: 225 layers,  3157200 parameters,  3157184 gradients,   8.9 GFLOPs
+  s: [0.33, 0.50, 1024]  # YOLOv8s summary: 225 layers, 11166560 parameters, 11166544 gradients,  28.8 GFLOPs
+  m: [0.67, 0.75, 768]   # YOLOv8m summary: 295 layers, 25902640 parameters, 25902624 gradients,  79.3 GFLOPs
+  l: [1.00, 1.00, 512]   # YOLOv8l summary: 365 layers, 43691520 parameters, 43691504 gradients, 165.7 GFLOPs
+  x: [1.00, 1.25, 512]   # YOLOv8x summary: 365 layers, 68229648 parameters, 68229632 gradients, 258.5 GFLOPs
+
+# Sheep-YOLO backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, PatchEmbed_FasterNet, [40, 4, 4]]  #0 0-P1/4 The input to layer 0 is a 640*640*3 image. The Embedding layer is a Conv convolutional layer. 40 represents the number of output channels, 4 represents the convolutional kernel size k, and the next 4 represents the step size. The output feature map is 160*160*40.
+  - [-1, 1, BasicStage, [40, 1]]  # 1 40 represents the number of output channels, 1 represents the pooling kernel size, and the feature map size remains unchanged. The output feature map is 160*160*40.
+  - [-1, 1, PatchMerging_FasterNet, [80, 2, 2]]  #2 2-P2/8 80 represents the number of output channels, 2 represents the pooling kernel size, and the following 2 represents the stride. The output feature map is 80*80*80.
+  - [-1, 2, BasicStage, [80, 1]]  #3 3-P3/16 80 represents the number of output channels, 1 represents the pooling kernel size, and the feature map size remains unchanged. The output feature map is 80*80*80.
+  - [-1, 1, PatchMerging_FasterNet, [160, 2, 2]]  #4 4 160 represents the number of output channels, 2 represents the pooling kernel size, and the following 2 represents the stride. The output feature map is 40*40*160.
+  - [-1, 8, BasicStage, [160, 1]]  #5 5-P4/32 160 represents the number of output channels, 1 represents the pooling kernel size, and the feature map size remains unchanged. The output feature map is 40*40*160.
+  - [-1, 1, PatchMerging_FasterNet, [320, 2, 2]] # 6 320 represents the number of output channels, 2 represents the pooling kernel size, and the following 2 represents the stride. The output feature map is 20*20*320.
+  - [-1, 2, BasicStage, [320, 1]] # 7 320 represents the number of output channels, 1 represents the pooling kernel size, and the feature map size remains unchanged. The output feature map is 20*20*320.
+  - [-1, 1, SPPF, [320, 5]]  # 8 320 represents the number of output channels, 5 represents the pooling kernel size, and the feature map size remains unchanged. The output feature map is 20*20*320.
+
+# Faster_Basic_Block
+
+# Sheep-YOLO head
+head:
+  - [-1, 1, CARAFE, [512, 3, 2]] #9 This layer is an upsampling layer. -1 means taking the output of the upper layer as the input of this layer. 512 represents the number of output channels, 3 represents the pooling kernel size, and 2 represents the upsampling rate, so the output size is twice that of the input. The output feature map is 40*40*512.
+  - [[-1, 5], 1, Concat, [1]]  #10 cat backbone P4 【-1, 5】 means taking the outputs of the upper layer and the 5th layer as the inputs of this layer. 1 represents the dimension of concatenation being 1. The output of the upper layer is 40*40*512, and the output of the 5th layer is 40*40*160, so the output of this layer is 40*40*672.
+  - [-1, 1, MLCA, [512]]  # 11 512 represents the number of output channels. The output feature map is 40*40*512.
+
+  - [-1, 1, CARAFE, [256, 3, 2]] #12  This layer is an upsampling layer. -1 means taking the output of the upper layer as the input of this layer. 256 represents the number of output channels, 3 represents the pooling kernel size, and 2 represents the upsampling rate, so the output size is twice that of the input. The output feature map is 80*80*256.
+  - [[-1, 3], 1, Concat, [1]]  #13 cat backbone P3 【-1，3】 means taking the outputs of the upper layer and the 3rd layer as the inputs of this layer. 1 represents the dimension of concatenation being 1. The output of the upper layer is 8080256, and the output of the 3rd layer is 808080, so the output of this layer is 80*80*336.
+  - [-1, 1, MLCA, [256]]  # 14 (P3/8-small) 256 means taking the outputs of the upper layer and the 3rd layer as the inputs of this layer. 1 represents the dimension of concatenation being 1. The output of the upper layer is 8080256, and the output of the 3rd layer is 80*80*80, so the output of this layer is 80*80*336.
+
+  - [-1, 1, Conv, [256, 3, 2]] #15 Convolution operation. 256 represents the number of output channels, 3 represents the convolutional kernel size, and 2 represents the stride. The output feature map is 40*40*256.
+  - [[-1, 11], 1, Concat, [1]]  #16 cat head P4 【-1，11】means taking the outputs of the upper layer and the 11th layer as the inputs of this layer. 1 represents the dimension of concatenation being 1. The output of the upper layer is 40*40*256, and the output of the 11th layer is 40*40*512, so the output of this layer is 40*40*768.
+  - [-1, 1, MLCA, [512]]  # 17 (P4/16-medium) 512 represents the number of output channels. The output feature map is 40*40*512.
+
+  - [-1, 1, Conv, [512, 3, 2]] # 18 Convolution operation. 512 represents the number of output channels, 3 represents the convolutional kernel size, and 2 represents the stride. The output feature map is 20*20*512.
+  - [[-1, 8], 1, Concat, [1]]  #19 cat head P5 【-1，8】means taking the outputs of the upper layer and the 8th layer as the inputs of this layer. 1 represents the dimension of concatenation being 1. The output of the upper layer is 20*20*512, and the 8th layer's output is 20*20*320, so the output of this layer is 20*20*832.
+  - [-1, 1, MLCA, [1024]]  # 20 (P5/32-large) 1024 represents the number of output channels. The output feature map is 20*20*1024.
+
+  - [[14, 17, 20], 1, Detect, [nc]]  #21 Detect(P3, P4, P5) 【14 17 20】 means taking the outputs of the 14th, 17th, and 20th layers as the inputs of this layer. 1 represents the dimension of concatenation being 1. The output of the 14th layer is 80*80*256, the output of the 17th layer is 40*40*512, and the 20th layer is 20*20*1024.
